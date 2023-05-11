@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="sidebar scrollable-sidebar" id="sidebar">
+            <input type="text" id="search" placeholder="Search locations..." class="form-control">
+            <ul id="location-list" class="list-group"></ul>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="container container-right">
+            <div id="navigation" class="text-center">
+                <button id="previous" class="btn btn-default">Previous</button>
+                <button id="next" class="btn btn-default">Next</button>
+            </div>
+            <h2 id="floor-name" class="text-center"></h2>
+            <div class="text-center floor-plan-container">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+{% block script %}
+<script>
+let floorPlans = [];
+let currentFloorPlanIndex = -1;  // Initialize to -1
+let currentLocationName = '';  // Initialize to an empty string
+let selectedLocationId = null;
+let locations = [];
+
+// *****************************************
+// Get building locations and render them in the list
+function getLocations() {
+    fetch('/data/locations/')
+        .then(response => response.json())
+        .then(data => {
+            locations = data;
+            renderLocations();
+        })
+}
+
+function renderLocations() {
+    let list = document.getElementById('location-list');
+    list.innerHTML = '';
+    let searchValue = document.getElementById('search').value.toLowerCase();
+
+    locations.forEach((location, index) => {
+        if (location.name.toLowerCase().includes(searchValue)) {
+            let item = document.createElement('li');
+            item.textContent = location.name;
+            item.classList.add('list-group-item', 'list-group-item-action');
+
+            // If this location is the selected one, add the 'active' class
+            if (location.id === selectedLocationId) {  // Add this line
+                item.classList.add('active');  // Add this line
+            }  // Add this line
+
+            item.addEventListener('click', () => {
+                // Remove 'active' class from previously selected item, if there is one
+                let previousSelectedItem = document.querySelector('.list-group-item.active');
+                if (previousSelectedItem) {
+                    previousSelectedItem.classList.remove('active');
+                }
+
+                // Add 'active' class to the clicked item
+                item.classList.add('active');
+
+                getFloorPlans(location.id);
+                currentLocationName = location.name;  // Store the location name
+                currentFloorPlanIndex = 0;  // Set to 0 when a location is clicked
+
+                // Store the location's ID
+                selectedLocationId = location.id;  // Add this line
+            });
+
+            list.appendChild(item);
+        }
+    });
+}
+
+
+
+
+// *****************************************
+// Floor plans stuff below
+document.getElementById('search').addEventListener('input', renderLocations);
+
+function getFloorPlans(locationId) {
+    fetch(`/data/locations/${locationId}/floorplans/`)
+        .then(response => response.json())
+        .then(data => {
+            // Sort floor plans by the 'floor' field
+            data.sort((a, b) => a.floor - b.floor);
+            // Set floorPlans to the fetched and sorted data
+            floorPlans = data;
+            currentFloorPlanIndex = 0;
+            updateFloorPlan();
+        })
+}
+
+
+function updateFloorPlan() {
+    const floorPlanContainer = document.querySelector('.floor-plan-container');
+    floorPlanContainer.innerHTML = '';  // Clear previous floor plan
+
+    if (floorPlans.length > 0 && currentFloorPlanIndex >= 0) {
+        let floorPlan = floorPlans[currentFloorPlanIndex];
+        document.getElementById('floor-name').textContent = currentLocationName + ' - Floor ' + floorPlan.floor;
+
+        // Create a new img element and set its properties
+        const img = document.createElement('img');
+        img.id = 'floor-plan';
+        img.src = "/media/" + floorPlan.image; // updated the image source
+        img.alt = 'Floor Plan';
+        img.classList.add('img-responsive', 'center-block', 'floor-plan-img');
+
+        // Add the new img element to the DOM
+        floorPlanContainer.appendChild(img);
+    } else {
+        document.getElementById('floor-name').textContent = '';
+    }
+}
+
+document.getElementById('previous').addEventListener('click', () => {
+    if (currentFloorPlanIndex > 0) {
+        currentFloorPlanIndex--;
+        updateFloorPlan();
+    }
+});
+
+document.getElementById('next').addEventListener('click', () => {
+    if (currentFloorPlanIndex < floorPlans.length - 1) {
+        currentFloorPlanIndex++;
+        updateFloorPlan();
+    }
+});
+
+getLocations();
+</script>
+{% endblock %}

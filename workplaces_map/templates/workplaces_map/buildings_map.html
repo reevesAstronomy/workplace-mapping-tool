@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAdC6chCxgyIK0rFrUcSoLf_HA3QLxEvM"></script>
+    <script>
+        function initMap() {
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 14,
+                center: {lat: 43.46987892945855, lng: -80.54161036810046},
+            });
+
+            // Assuming you pass the buildings queryset to the template context
+            {% for building in buildings %}
+                const marker = new google.maps.Marker({
+                    position: {lat: {{ building.latitude }}, lng: {{ building.longitude }}},
+                    map: map,
+                    title: '{{ building.name }}'
+                });
+
+                marker.addListener('click', function() {
+                    window.location.href = '/building/{{ building.id }}/';
+                });
+            {% endfor %}
+        }
+        google.maps.event.addDomListener(window, 'load', initMap);
+
+        let isAddingBuilding = false;
+
+        function startAddingBuilding() {
+          isAddingBuilding = true;
+          document.getElementById('add-building').style.display = 'none';
+          document.getElementById('cancel-adding').style.display = 'inline';
+        }
+
+        function cancelAddingBuilding() {
+          isAddingBuilding = false;
+          document.getElementById('add-building').style.display = 'inline';
+          document.getElementById('cancel-adding').style.display = 'none';
+        }
+
+        function handleMapClick(event) {
+          if (isAddingBuilding) {
+            const lat = event.latLng.lat();
+            const lng = event.latLng.lng();
+            const data = { 'name': 'New Building', 'latitude': lat, 'longitude': lng };
+            $.post('/workplaces_map/add-building/', data)
+              .done(function(response) {
+                // Update buildings list
+                addBuildingToList(response.building_id, response.building_name);
+                // Add marker to map
+                addMarkerToMap(response.building_id, lat, lng);
+                // Reset adding building flag
+                isAddingBuilding = false;
+              })
+              .fail(function() {
+                alert('Failed to add new building.');
+                // Reset adding building flag
+                isAddingBuilding = false;
+              });
+          }
+        }
+        function deleteBuilding(buildingId) {
+          fetch(`/workplaces_map/delete_building/${buildingId}/`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'X-CSRFToken': csrf_token,
+              },
+          })
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error('Network response was not ok');
+              }
+              const buildingList = document.getElementById(`building-${buildingId}`);
+              buildingList.remove();
+              const marker = markers[buildingId];
+              marker.setMap(null);
+              delete markers[buildingId];
+          })
+          .catch(error => {
+              console.error('There was a problem with the fetch operation:', error);
+          });
+      }
+
+    </script>
+    <script>
+      // Function to add a building to the sidebar
+      function addToSidebar(buildingId, name) {
+      const buildingList = document.getElementById('building-list');
+      const listItem = document.createElement('li');
+      listItem.id = `building-${buildingId}`;
+      listItem.onclick = () => { location.href = `/workplaces_map/building/${buildingId}/`; };
+      listItem.innerText = name;
+
+      const deleteButton = document.createElement('button');
+      deleteButton.innerText = 'Delete';
+      deleteButton.onclick = (event) => {
+        event.stopPropagation();
+        deleteBuilding(buildingId);
+      };
+
+      listItem.appendChild(deleteButton);
+      buildingList.appendChild(listItem);
+      }
+
+      // Function to remove a building from the sidebar
+      function removeFromSidebar(buildingId) {
+      const listItem = document.getElementById(`building-${buildingId}`);
+      listItem.remove();
+      }
+
+      // Add event listeners for adding buildings
+      map.addListener('click', (event) => {
+      const latitude = event.latLng.lat();
+      const longitude = event.latLng.lng();
+      createBuilding(latitude, longitude);
+      });
+
+      // Initialize the sidebar with existing buildings
+      {% for building in buildings %}
+      addToSidebar({{ building.id }}, '{{ building.name }}');
+      {% endfor %}
+
+    </script>
+
+    <script>
+      function searchBuildings() {
+        const searchInput = document.getElementById('search');
+        const searchQuery = searchInput.value.toLowerCase();
+        const buildingList = document.getElementById('building-list');
+        const listItems = buildingList.getElementsByTagName('li');
+
+        for (let i = 0; i < listItems.length; i++) {
+          const listItem = listItems[i];
+          const buildingName = listItem.innerText.slice(0, -6); // Remove "Delete" from the name
+          if (buildingName.toLowerCase().indexOf(searchQuery) > -1) {
+            listItem.style.display = '';
+          } else {
+            listItem.style.display = 'none';
+          }
+        }
+      }
+  </script>
+
+</head>
+<body>
+    <div id="map" style="width:80%; height: 100vh;"></div>
+    <div id="sidebar" style="padding: 10px;">
+        <button id="add-building" onclick="startAddingBuilding()">Add Building</button>
+        <button id="cancel-adding" onclick="cancelAddingBuilding()" style="display:none;">Cancel</button>
+        <br>
+        <input type="text" id="search" placeholder="Search buildings" oninput="searchBuildings()" style="margin-top: 10px;">
+        <ul id="building-list">
+            {% for building in buildings %}
+                <li id="building-{{ building.id }}" onclick="location.href='/workplaces_map/building/{{ building.id }}/';">
+                    {{ building.name }}
+                    <button onclick="deleteBuilding({{ building.id }}); event.stopPropagation();">Delete</button>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
