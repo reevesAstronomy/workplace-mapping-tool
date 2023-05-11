@@ -11,12 +11,10 @@ def index(request):
 def locations_data(request):
     # locations = Location.objects.values().exclude('geometry')
     locations = Location.objects.values('id', 'created', 'modified', 'name', 'type', 'is_mobile', 'address')
-    print("locations list:", locations)
     return JsonResponse(list(locations), safe=False)
 
 def floorplan_data(request, location_id):
     floorplans = FloorPlan.objects.filter(location_id=location_id).values()
-    print(floorplans)
     return JsonResponse(list(floorplans), safe=False)
 
 # Rest of your views will need to be updated to use Location and FloorPlan as well.
