@@ -10,19 +10,19 @@ local_settings.py
 db.sqlite3
 
 # Python # 
-*.py[cod] 
-*$py.class 
+*.py[cod]
+*$py.class
 
 # Installer logs 
-pip-log.txt 
-pip-delete-this-directory.txt 
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Environments 
-.env 
-.venv 
-env/ 
+# Environments
+.env
+.venv
+env/
 myenv/
-venv/ 
-ENV/ 
-env.bak/ 
+venv/
+ENV/
+env.bak/
 venv.bak/
