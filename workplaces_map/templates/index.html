@@ -110,7 +110,7 @@ function updateFloorPlan() {
 
     if (floorPlans.length > 0 && currentFloorPlanIndex >= 0) {
         let floorPlan = floorPlans[currentFloorPlanIndex];
-        document.getElementById('floor-name').textContent = currentLocationName + ' - Floor ' + floorPlan.floor;
+        document.getElementById('floor-name').textContent = currentLocationName; //+ ' - Floor ' + floorPlan.floor;
 
         // Create a new img element and set its properties
         const img = document.createElement('img');
