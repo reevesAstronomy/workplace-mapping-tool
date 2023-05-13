@@ -208,7 +208,7 @@ function updateFloorPlan() {
                 circlemarker: false,
                 rectangle: false,
                 polygon: {
-                    allowIntersection: false // Disallows polygons from intersecting
+                    allowIntersection: false, // Disallows polygons from intersecting
                 }
             },
             edit: {
@@ -218,6 +218,10 @@ function updateFloorPlan() {
         });
 
         map.addControl(drawControl);
+
+        // Change tooltip to be me obvious to the user
+        let drawPolygonButton = document.querySelector('.leaflet-draw-draw-polygon');
+        drawPolygonButton.title = 'Draw a room';
 
         // Make sure the map stretches to fit the div
         map.invalidateSize();
