@@ -1,10 +1,18 @@
 from django.db import models
 # from django.contrib.postgres.fields import JSONField
 from django.db.models import JSONField
+from django_loci.models import FloorPlan
 
-### WARNING! I didn't end up really using these below. Room might be useful if I instead connect it to a FloorPlan database object
+class Room(models.Model):
+    floorplan = models.ForeignKey(FloorPlan, on_delete=models.CASCADE, related_name='rooms')
+    geometry = JSONField() # a given room's polygon geometry
 
-# #
+
+
+
+
+
+# # Deleted this but wanted to keep it in the comments for now to see its example fields
 # class Room(models.Model):
 #     floor = models.ForeignKey(Floor, on_delete=models.CASCADE, related_name='rooms')
 #     label = models.CharField(max_length=255)

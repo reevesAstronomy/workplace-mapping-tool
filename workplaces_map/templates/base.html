@@ -5,12 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Union drive mapping</title>
+    
     <link rel="shortcut icon" type="image/png" href="{% static 'bootstrap-icons-1.10.5/favicon.ico' %}"/>
     <link rel="stylesheet" href="{% static 'bootstrap-3.4.1/css/bootstrap.min.css' %}"/>
     <link rel="stylesheet" href="{% static 'leaflet/leaflet.css' %}" />
     <link rel="stylesheet" href="{% static 'leaflet-draw/leaflet.draw.css' %}" />
     <script src="{% static 'js/jquery-3.6.4.min.js' %}"></script>
     <script src="{% static 'bootstrap-3.4.1/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'leaflet/leaflet.js' %}"></script>
+    <script src="{% static 'leaflet-draw/leaflet.draw.js' %}"></script>
 
     <style>
         /* CSS styling here */
@@ -93,7 +96,5 @@
     </div>
     {% block script %}
     {% endblock %}
-    <script src="{% static 'leaflet/leaflet.js' %}"></script>
-    <script src="{% static 'leaflet-draw/leaflet.draw.js' %}"></script>
 </body>
 </html>

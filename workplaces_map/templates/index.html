@@ -32,6 +32,7 @@ let currentFloorPlanIndex = -1;  // Initialize to -1
 let currentLocationName = '';  // Initialize to an empty string
 let selectedLocationId = null;
 let locations = [];
+let drawnItems = L.featureGroup(); // Initialize drawnItems as an empty Leaflet Feature Group
 
 // *****************************************
 // Get building locations and render them in the list
@@ -83,9 +84,28 @@ function renderLocations() {
     });
 }
 
+document.getElementById('search').addEventListener('input', renderLocations);
+
+
 // *****************************************
 // Floor plans stuff below
-document.getElementById('search').addEventListener('input', renderLocations);
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+let csrftoken = getCookie('csrftoken');
 
 function getFloorPlans(locationId) {
     fetch(`/data/locations/${locationId}/floorplans/`)
@@ -98,6 +118,30 @@ function getFloorPlans(locationId) {
             currentFloorPlanIndex = 0;
             updateFloorPlan();
         })
+}
+
+function saveGeoJSON() {
+    let geojson = drawnItems.toGeoJSON();
+    fetch('/data/locations/' + selectedLocationId + '/floorplans/' + floorPlans[currentFloorPlanIndex].id + '/save_rooms/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken  // Replace with your CSRF token
+        },
+        body: JSON.stringify(geojson)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
 }
 
 function updateFloorPlan() {
@@ -123,8 +167,11 @@ function updateFloorPlan() {
             minZoom: -1
         }).setView([0, 0], 0);
 
-        // Define a feature group to hold all the drawn items
-        let drawnItems = L.featureGroup().addTo(map);
+        // Clear the drawnItems Feature Group
+        drawnItems.clearLayers();
+
+        // Add the cleared Feature Group to the map
+        drawnItems.addTo(map);
 
         // Use JavaScript Image object to get the dimensions of the floorplan image
         let img = new Image();
@@ -136,7 +183,21 @@ function updateFloorPlan() {
             // Add the image overlay to the map
             let image = L.imageOverlay(img.src, imageBounds).addTo(map);
             map.fitBounds(image.getBounds());
+
+            // Fetch the rooms' geometry and add it to the map
+            fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/get_rooms/`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(room => {
+                        room.geometry.features.forEach(feature => {
+                            let geometry = feature.geometry;
+                            let layer = L.GeoJSON.geometryToLayer(geometry);
+                            drawnItems.addLayer(layer);
+                        });
+                    });
+                });
         };
+
 
         // Set up Leaflet.draw
         const drawControl = new L.Control.Draw({
@@ -161,12 +222,21 @@ function updateFloorPlan() {
         // Make sure the map stretches to fit the div
         map.invalidateSize();
 
+        // event listeners for draw:created and draw:edited
+        map.on('draw:created', function (e) {
+          let layer = e.layer;
+          drawnItems.addLayer(layer);
+          saveGeoJSON();
+        });
+
+        map.on('draw:edited', function (e) {
+          saveGeoJSON();
+        });
+
     } else {
         document.getElementById('floor-name').textContent = '';
     }
 }
-
-
 
 
 document.getElementById('previous').addEventListener('click', () => {
