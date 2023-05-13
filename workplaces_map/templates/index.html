@@ -83,9 +83,6 @@ function renderLocations() {
     });
 }
 
-
-
-
 // *****************************************
 // Floor plans stuff below
 document.getElementById('search').addEventListener('input', renderLocations);
@@ -103,28 +100,74 @@ function getFloorPlans(locationId) {
         })
 }
 
-
 function updateFloorPlan() {
     const floorPlanContainer = document.querySelector('.floor-plan-container');
     floorPlanContainer.innerHTML = '';  // Clear previous floor plan
 
     if (floorPlans.length > 0 && currentFloorPlanIndex >= 0) {
         let floorPlan = floorPlans[currentFloorPlanIndex];
-        document.getElementById('floor-name').textContent = currentLocationName; //+ ' - Floor ' + floorPlan.floor;
+        document.getElementById('floor-name').textContent = currentLocationName;
 
-        // Create a new img element and set its properties
-        const img = document.createElement('img');
-        img.id = 'floor-plan';
-        img.src = "/media/" + floorPlan.image; // updated the image source
-        img.alt = 'Floor Plan';
-        img.classList.add('img-responsive', 'center-block', 'floor-plan-img');
+        // Create a new div for the Leaflet map
+        const mapDiv = document.createElement('div');
+        mapDiv.id = 'map';
+        mapDiv.style.height = "500px";  // Or set to a height of your choosing
+        mapDiv.style.width = "100%";
 
-        // Add the new img element to the DOM
-        floorPlanContainer.appendChild(img);
+        // Add the new div to the DOM
+        floorPlanContainer.appendChild(mapDiv);
+
+        // Initialize the Leaflet map with L.CRS.Simple and minZoom
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -1
+        }).setView([0, 0], 0);
+
+        // Define a feature group to hold all the drawn items
+        let drawnItems = L.featureGroup().addTo(map);
+
+        // Use JavaScript Image object to get the dimensions of the floorplan image
+        let img = new Image();
+        img.src = "/media/" + floorPlan.image;
+        img.onload = function() {
+            // Define the corners of the image based on its dimensions
+            const imageBounds = [[0, 0], [this.height, this.width]];
+
+            // Add the image overlay to the map
+            let image = L.imageOverlay(img.src, imageBounds).addTo(map);
+            map.fitBounds(image.getBounds());
+        };
+
+        // Set up Leaflet.draw
+        const drawControl = new L.Control.Draw({
+            draw: {
+                polyline: false,
+                circle: false,
+                marker: false,
+                circlemarker: false,
+                rectangle: false,
+                polygon: {
+                    allowIntersection: false // Disallows polygons from intersecting
+                }
+            },
+            edit: {
+                featureGroup: drawnItems, //REQUIRED!!
+                remove: false
+            }
+        });
+
+        map.addControl(drawControl);
+
+        // Make sure the map stretches to fit the div
+        map.invalidateSize();
+
     } else {
         document.getElementById('floor-name').textContent = '';
     }
 }
+
+
+
 
 document.getElementById('previous').addEventListener('click', () => {
     if (currentFloorPlanIndex > 0) {
