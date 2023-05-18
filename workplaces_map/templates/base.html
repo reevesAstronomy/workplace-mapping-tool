@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Union drive mapping</title>
-    
+
+    <link rel="stylesheet" href="{% static 'css/base_html.css' %}" />
     <link rel="shortcut icon" type="image/png" href="{% static 'bootstrap-icons-1.10.5/favicon.ico' %}"/>
     <link rel="stylesheet" href="{% static 'bootstrap-3.4.1/css/bootstrap.min.css' %}"/>
     <link rel="stylesheet" href="{% static 'leaflet/leaflet.css' %}" />
@@ -14,70 +15,10 @@
     <script src="{% static 'bootstrap-3.4.1/js/bootstrap.min.js' %}"></script>
     <script src="{% static 'leaflet/leaflet.js' %}"></script>
     <script src="{% static 'leaflet-draw/leaflet.draw.js' %}"></script>
-
+<!--
     <style>
-        /* CSS styling here */
-        .sidebar {
-    border-right: 2px solid #ccc;
-    padding-right: 15px;
-    height: 100%;
-    width: 100%;  /* Change width to 100% */
-    /* position: fixed; */ /* Remove this line */
-    z-index: 1;
-    overflow-x: hidden;
-    transition: 0.5s;
-    padding-top: 60px;
-}
 
-.container-right {
-    width: 100%; /* add this line to limit width of the right container */
-    padding: 0; /* remove padding from the container */
-}
-
-.scrollable-sidebar {
-    overflow-y: auto;
-    max-height: 100vh;
-}
-
-        /* .sidebar {
-            border-right: 2px solid #ccc;
-            padding-right: 15px;
-            height: 100%;
-            width: 25%;  /* Change width to 25% */
-            /* position: sticky; /* Add this line */
-            /* top: 0; /* Add this line */
-            /* z-index: 1;
-            overflow-x: hidden;
-            transition: 0.5s;
-            padding-top: 60px; */
-        /* }  */
-
-
-        body {
-            padding-top: 70px;  /* Add padding to body to prevent content overlapped by navbar */
-        }
-
-        .floor-plan-img {
-          max-width: 100%; /* limit the size of the image */
-          max-height: 80vh; /* limit the height of the image */
-          height: auto;
-          object-fit: contain;
-        }
-
-        .list-group-item {
-            cursor: pointer;
-        }
-        .floor-plan-container {
-          display: flex;        /* Enable flexbox */
-          align-items: center;  /* Center items vertically in the container */
-          justify-content: center; /* Center items horizontally in the container */
-          width: 100%;          /* Add this line */
-          /* height: 80vh;         /* Set the container's height */
-        }
-        /* * {
-    border: 1px solid red !important;
-} */
-    </style>
+    </style> -->
 </head>
 <body>
     <nav class="navbar navbar-default navbar-fixed-top">
@@ -86,7 +27,7 @@
                 <a class="navbar-brand" href="/">Home</a>
             </div>
             <ul class="nav navbar-nav navbar-right">
-                <li><a href="/admin/">Admin/upload</a></li>
+                <li><a href="/admin/">Admin/upload floorplans</a></li>
             </ul>
         </div>
     </nav>

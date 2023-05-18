@@ -3,11 +3,44 @@
 {% load static %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/index_html.css' %}" />
+
 <div class="row">
     <div class="col-md-3">
         <div class="sidebar scrollable-sidebar" id="sidebar">
             <input type="text" id="search" placeholder="Search locations..." class="form-control">
             <ul id="location-list" class="list-group"></ul>
+            <hr>
+            <div id="room-info-message">
+                <p>Draw a room or click to select an existing room</p>
+            </div>
+            <div id="room-info">
+                <h4>Room Details</h4>
+                <form>
+                    <div class="form-group">
+                        <label for="room-name">Room name</label>
+                        <input type="text" class="form-control" id="room-name" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="workers-count">Workers count</label>
+                        <input type="number" class="form-control" id="workers-count" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="last-contacted">Last contacted</label>
+                        <input type="date" class="form-control" id="last-contacted" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="follow-up-needed">Follow-up needed</label>
+                        <input type="checkbox" class="form-control" id="follow-up-needed" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea class="form-control" id="notes" rows="3" disabled></textarea>
+                    </div>
+                    <button type="button" id="save" class="btn btn-primary" disabled>Save</button>
+                    <button type="button" id="cancel" class="btn btn-secondary" disabled>Cancel</button>
+                </form>
+            </div>
         </div>
     </div>
     <div class="col-md-9">

@@ -6,6 +6,26 @@ let currentLocationName = '';  // Initialize to an empty string
 let selectedLocationId = null;
 let locations = [];
 let drawnItems = L.featureGroup(); // Initialize drawnItems as an empty Leaflet Feature Group
+let map;
+let selectedRoom = null;
+let roomDetails = {};
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+let csrftoken = getCookie('csrftoken');
 
 // *****************************************
 // Get building locations and render them in the list
@@ -15,7 +35,7 @@ function getLocations() {
         .then(data => {
             locations = data;
             renderLocations();
-        })
+        });
 }
 
 function renderLocations() {
@@ -35,22 +55,24 @@ function renderLocations() {
             }  // Add this line
 
             item.addEventListener('click', () => {
-                // Remove 'active' class from previously selected item, if there is one
-                let previousSelectedItem = document.querySelector('.list-group-item.active');
-                if (previousSelectedItem) {
-                    previousSelectedItem.classList.remove('active');
-                }
+            // Remove 'active' class from previously selected item, if there is one
+            let previousSelectedItem = document.querySelector('.list-group-item.active');
+            if (previousSelectedItem) {
+                previousSelectedItem.classList.remove('active');
+            }
 
-                // Add 'active' class to the clicked item
-                item.classList.add('active');
+            // Add 'active' class to the clicked item
+            item.classList.add('active');
 
-                getFloorPlans(location.id);
-                currentLocationName = location.name;  // Store the location name
-                currentFloorPlanIndex = 0;  // Set to 0 when a location is clicked
+            // Store the location's ID
+            selectedLocationId = location.id;  // Add this line
 
-                // Store the location's ID
-                selectedLocationId = location.id;  // Add this line
-            });
+            // Call getFloorPlans() after the selectedLocationId is set
+            getFloorPlans(location.id);
+            currentLocationName = location.name;  // Store the location name
+            currentFloorPlanIndex = 0;  // Set to 0 when a location is clicked
+        });
+
 
             list.appendChild(item);
         }
@@ -59,49 +81,44 @@ function renderLocations() {
 
 document.getElementById('search').addEventListener('input', renderLocations);
 
-
-// *****************************************
-// Floor plans stuff below
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        let cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
+document.getElementById('previous').addEventListener('click', () => {
+    if (currentFloorPlanIndex > 0) {
+        currentFloorPlanIndex--;
+        updateFloorPlan();
     }
-    return cookieValue;
+});
+
+document.getElementById('next').addEventListener('click', () => {
+    if (currentFloorPlanIndex < floorPlans.length - 1) {
+        currentFloorPlanIndex++;
+        updateFloorPlan();
+    }
+});
+
+// Deselect room
+function deselectRoom() {
+    selectedRoom = null;
+    document.getElementById('room-info').classList.add('disabled');
+    document.getElementById('room-info-message').style.display = 'block';
+    document.getElementById('room-info').style.display = 'none';
 }
 
-let csrftoken = getCookie('csrftoken');
+// Save room details
+function saveRoomDetails() {
+    // Gather the updated details from the form
+    roomDetails.room_name = document.getElementById('room-name').value;
+    roomDetails.workers_count = document.getElementById('workers-count').value;
+    roomDetails.last_contacted = document.getElementById('last-contacted').value;
+    roomDetails.follow_up_needed = document.getElementById('follow-up-needed').checked;
+    roomDetails.notes = document.getElementById('notes').value;
 
-function getFloorPlans(locationId) {
-    fetch(`/data/locations/${locationId}/floorplans/`)
-        .then(response => response.json())
-        .then(data => {
-            // Sort floor plans by the 'floor' field
-            data.sort((a, b) => a.floor - b.floor);
-            // Set floorPlans to the fetched and sorted data
-            floorPlans = data;
-            currentFloorPlanIndex = 0;
-            updateFloorPlan();
-        })
-}
-
-function saveGeoJSON() {
-    let geojson = drawnItems.toGeoJSON();
-    fetch('/data/locations/' + selectedLocationId + '/floorplans/' + floorPlans[currentFloorPlanIndex].id + '/save_rooms/', {
+    fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/rooms/${selectedRoom.feature.properties.id}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken  // Replace with your CSRF token
+            'X-CSRFToken': csrftoken
         },
-        body: JSON.stringify(geojson)
+        body: JSON.stringify(roomDetails)
     })
     .then(response => {
         if (!response.ok) {
@@ -116,6 +133,127 @@ function saveGeoJSON() {
         console.error('Error:', error);
     });
 }
+
+
+// Function for the displaying of the room infobox
+function toggleRoomInfo() {
+    let roomInfo = document.getElementById('room-info');
+    let roomInfoMessage = document.getElementById('room-info-message');
+    let formElements = document.querySelectorAll('#room-info input, #room-info textarea, #room-info button');
+
+    if (selectedRoom) {
+        roomInfo.style.display = 'block';
+        roomInfoMessage.style.display = 'none';
+        formElements.forEach(element => element.disabled = false);  // Enable all form fields and buttons
+    } else {
+        roomInfo.style.display = 'none';
+        roomInfoMessage.style.display = 'block';
+        formElements.forEach(element => element.disabled = true);  // Disable all form fields and buttons
+    }
+}
+
+
+// When a room is selected
+function onRoomSelected(e) {
+    if (e.target) {
+        selectedRoom = e.target;
+        fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/rooms/${selectedRoom.id}/`)
+            .then(response => response.json())
+            .then(data => {
+                roomDetails = data.features[0].properties;  // Update this line
+                toggleRoomInfo();
+                displayRoomDetails();
+            });
+    } else {
+        console.error('Error: No target element found in onRoomSelected');
+    }
+}
+
+
+// Display room details
+function displayRoomDetails() {
+    let formElements = document.querySelectorAll('#room-info input, #room-info textarea, #room-info button');
+    formElements.forEach(element => element.disabled = false);  // Enable all form fields and buttons
+
+    document.getElementById('room-info').classList.remove('disabled');
+    document.getElementById('room-name').value = roomDetails.room_name;
+    document.getElementById('workers-count').value = roomDetails.workers_count || '';
+    document.getElementById('last-contacted').value = roomDetails.last_contacted || '';
+    document.getElementById('follow-up-needed').checked = roomDetails.follow_up_needed;
+    document.getElementById('notes').value = roomDetails.notes;
+}
+
+// *****************************************
+// Floor plans stuff below
+
+function getFloorPlans(locationId) {
+    fetch(`/data/locations/${locationId}/floorplans/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Sort floor plans by the 'floor' field
+            data.sort((a, b) => a.floor - b.floor);
+            // Set floorPlans to the fetched and sorted data
+            floorPlans = data;
+            currentFloorPlanIndex = 0;
+            updateFloorPlan();
+            // Fetch rooms
+            return fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/get_rooms/`);
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                data.features.forEach(feature => {
+                    let geometry = feature.geometry;
+                    let layer = L.geoJSON(geometry);
+                    layer.feature = feature;  // Attach the feature data to the layer
+                    drawnItems.addLayer(layer);
+                    // Add click event listener to the polygon
+                    layer.on('click', onRoomSelected);
+                });
+            })
+
+
+            .catch(e => {
+                console.log('There was a problem with your fetch operation: ' + e.message);
+            });
+}
+
+
+
+function saveGeoJSON() {
+    let geojson = drawnItems.toGeoJSON();
+    let lastFeatureGeometry = geojson.features[geojson.features.length - 1].geometry;
+    fetch('/data/locations/' + selectedLocationId + '/floorplans/' + floorPlans[currentFloorPlanIndex].id + '/save_rooms/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken  // Replace with your CSRF token
+        },
+        body: JSON.stringify(lastFeatureGeometry)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
 
 function updateFloorPlan() {
     const floorPlanContainer = document.querySelector('.floor-plan-container');
@@ -134,8 +272,11 @@ function updateFloorPlan() {
         // Add the new div to the DOM
         floorPlanContainer.appendChild(mapDiv);
 
-        // Initialize the Leaflet map with L.CRS.Simple and minZoom
-        const map = L.map('map', {
+        // Remove the old map and initialize the Leaflet map with L.CRS.Simple and minZoom
+        if (map) {
+            map.remove();
+        }
+        map = L.map('map', {
             crs: L.CRS.Simple,
             minZoom: -1
         }).setView([0, 0], 0);
@@ -150,25 +291,37 @@ function updateFloorPlan() {
         let img = new Image();
         img.src = "/media/" + floorPlan.image;
         img.onload = function() {
-            // Define the corners of the image based on its dimensions
-            const imageBounds = [[0, 0], [this.height, this.width]];
+        // Define the corners of the image based on its dimensions
+        const imageBounds = [[0, 0], [this.height, this.width]];
 
-            // Add the image overlay to the map
-            let image = L.imageOverlay(img.src, imageBounds).addTo(map);
-            map.fitBounds(image.getBounds());
+        // Add the image overlay to the map
+        let image = L.imageOverlay(img.src, imageBounds).addTo(map);
+        map.fitBounds(image.getBounds());
 
-            // Fetch the rooms' geometry and add it to the map
-            fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/get_rooms/`)
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(room => {
-                        room.geometry.features.forEach(feature => {
-                            let geometry = feature.geometry;
-                            let layer = L.GeoJSON.geometryToLayer(geometry);
-                            drawnItems.addLayer(layer);
-                        });
-                    });
-                });
+        // Fetch all the rooms geometry and add it to the map
+        fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/get_rooms/`)
+        .then(response => response.json())
+        .then(data => {
+            data.features.forEach(feature => {
+                let geometry = feature.geometry;
+                let layer = L.geoJSON(geometry);
+                layer.feature = feature;  // Attach the feature data to the layer
+                layer.id = feature.properties.id; // Attach the room id to the layer
+                layer.on('click', onRoomSelected);
+                drawnItems.addLayer(layer);
+            });
+        });
+
+        // event listeners for draw:created and draw:edited
+        map.on('draw:created', function (e) {
+            let layer = e.layer;
+            drawnItems.addLayer(layer);
+            saveGeoJSON();
+        });
+
+        map.on('draw:edited', function (e) {
+                saveGeoJSON();
+            });
         };
 
 
@@ -199,35 +352,34 @@ function updateFloorPlan() {
         // Make sure the map stretches to fit the div
         map.invalidateSize();
 
-        // event listeners for draw:created and draw:edited
-        map.on('draw:created', function (e) {
-          let layer = e.layer;
-          drawnItems.addLayer(layer);
-          saveGeoJSON();
-        });
-
-        map.on('draw:edited', function (e) {
-          saveGeoJSON();
-        });
-
     } else {
         document.getElementById('floor-name').textContent = '';
     }
 }
 
 
-document.getElementById('previous').addEventListener('click', () => {
-    if (currentFloorPlanIndex > 0) {
-        currentFloorPlanIndex--;
-        updateFloorPlan();
-    }
-});
+// Call this function after the DOM is loaded
+function addEventListenersToElements() {
+    // Update room details when the save button is clicked
+    document.getElementById('save').addEventListener('click', function() {
+        if (selectedRoom) {
+            roomDetails.name = document.getElementById('room-name').value;
+            roomDetails.workersCount = document.getElementById('workers-count').value;
+            roomDetails.lastContacted = document.getElementById('last-contacted').value;
+            roomDetails.followUpNeeded = document.getElementById('follow-up-needed').value;
+            roomDetails.notes = document.getElementById('notes').value;
+            saveRoomDetails();
+        }
+    });
 
-document.getElementById('next').addEventListener('click', () => {
-    if (currentFloorPlanIndex < floorPlans.length - 1) {
-        currentFloorPlanIndex++;
-        updateFloorPlan();
-    }
-});
+    // Deselect room when the cancel button is clicked
+    document.getElementById('cancel').addEventListener('click', function() {
+        deselectRoom();
+        toggleRoomInfo();
+    });
+}
 
-getLocations();
+window.onload = function() {
+    getLocations();
+    addEventListenersToElements();
+};
