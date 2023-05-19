@@ -10,6 +10,8 @@ let map;
 let selectedRoom = null;
 let roomDetails = {};
 
+test = null;
+
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -135,6 +137,7 @@ function saveRoomDetails() {
 }
 
 
+
 // Function for the displaying of the room infobox
 function toggleRoomInfo() {
     let roomInfo = document.getElementById('room-info');
@@ -232,7 +235,7 @@ function getFloorPlans(locationId) {
 function saveGeoJSON() {
     let geojson = drawnItems.toGeoJSON();
     let lastFeatureGeometry = geojson.features[geojson.features.length - 1].geometry;
-    fetch('/data/locations/' + selectedLocationId + '/floorplans/' + floorPlans[currentFloorPlanIndex].id + '/save_rooms/', {
+    return fetch('/data/locations/' + selectedLocationId + '/floorplans/' + floorPlans[currentFloorPlanIndex].id + '/save_rooms/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -248,11 +251,14 @@ function saveGeoJSON() {
     })
     .then(data => {
         console.log('Success:', data);
+        return data;
     })
     .catch((error) => {
         console.error('Error:', error);
+        return null;
     });
 }
+
 
 
 function updateFloorPlan() {
@@ -314,10 +320,24 @@ function updateFloorPlan() {
 
         // event listeners for draw:created and draw:edited
         map.on('draw:created', function (e) {
-            let layer = e.layer;
-            drawnItems.addLayer(layer);
-            saveGeoJSON();
+        let layer = e.layer;
+        drawnItems.addLayer(layer);
+        saveGeoJSON().then(response => {
+            let room = response.room;  // Changed this line
+            if (room) {
+                layer.feature = {
+                    type: 'Feature',
+                    properties: room,
+                    geometry: layer.toGeoJSON().geometry
+                };
+                test = room;
+                layer.id = room.pk; // Attach the room id to the layer
+                layer.on('click', onRoomSelected);
+              }
+            });
         });
+
+
 
         map.on('draw:edited', function (e) {
                 saveGeoJSON();

@@ -31,7 +31,13 @@ def save_room_data(request, location_id, floorplan_id):
             geometry = GEOSGeometry(json.dumps(geometry_data))
             room = Room(floorplan=floorplan, geometry=geometry)  # Pass the GEOS geometry object instead of the dictionary
             room.save()
-            return JsonResponse({'status': 'success'}, status=200)
+
+            # Serialize the Room object using Django's serialize function
+            # This function returns a string, so we need to convert it back to a dictionary
+            room_data = serialize('json', [room])
+            room_data = json.loads(room_data)[0]  # Convert the serialized data back to a dictionary
+
+            return JsonResponse({'status': 'success', 'room': room_data}, status=200)
         except (json.JSONDecodeError, KeyError, FloorPlan.DoesNotExist):
             return JsonResponse({'status': 'failure', 'error': 'Invalid data or floorplan not found'}, status=400)
     else:
@@ -44,6 +50,8 @@ def add_unique_ids_to_geojson(geojson_string):
         feature['id'] = str(feature['properties']['id'])
     return json.dumps(geojson_data)
 
+import datetime
+
 def room_data(request, location_id, floorplan_id):
     rooms = Room.objects.filter(floorplan__id=floorplan_id)
     geojson_data = {
@@ -55,6 +63,8 @@ def room_data(request, location_id, floorplan_id):
         serialized_geometry = json.loads(serialize('geojson', [room], fields=('geometry',)))
         room_dict = model_to_dict(room, fields=('id', 'room_name', 'room_type', 'workers_count', 'last_contacted', 'follow_up_needed', 'notes'))
         room_dict['geometry'] = serialized_geometry['features'][0]['geometry'] if serialized_geometry['features'] else None
+        if room_dict['last_contacted']:
+            room_dict['last_contacted'] = room_dict['last_contacted'].strftime("%Y-%m-%d")
         geojson_feature = {
             'type': 'Feature',
             'properties': room_dict,
@@ -63,6 +73,7 @@ def room_data(request, location_id, floorplan_id):
         geojson_data['features'].append(geojson_feature)
 
     return HttpResponse(json.dumps(geojson_data), content_type='application/json')
+
 
 @csrf_exempt
 def room_detail_data(request, location_id, floorplan_id, room_id):
@@ -77,24 +88,24 @@ def room_detail_data(request, location_id, floorplan_id, room_id):
     except Room.DoesNotExist:
         raise Http404("Room does not exist")
 
-    print("request.method", request.method)
     if request.method == 'GET':
         # Return the room details as properties of a GeoJSON feature
         room_data = serialize('geojson', [room], geometry_field='geometry', fields=('id', 'room_name', 'room_type', 'workers_count', 'last_contacted', 'follow_up_needed', 'notes'))
-        # room_data = serialize('geojson', [room], geometry_field='geometry')
         return HttpResponse(room_data, content_type='application/json')
 
     elif request.method == 'POST':
         # Update the room details
         data = json.loads(request.body)
-        room.room_name = data.get('room_name', room.room_name)
-        room.room_type = data.get('room_type', room.room_type)
-        room.workers_count = data.get('workers_count', room.workers_count)
-        room.last_contacted = data.get('last_contacted', room.last_contacted)
+        room.room_name = data.get('room_name', room.room_name) if data.get('room_name', room.room_name) != '' else 'Unnamed Room'
+        room.room_type = data.get('room_type', room.room_type) if data.get('room_type', room.room_type) != '' else 'OF'
+        workers_count = data.get('workers_count', room.workers_count)
+        room.workers_count = None if workers_count == '' else int(workers_count)
+        last_contacted = data.get('last_contacted', room.last_contacted)
+        room.last_contacted = None if last_contacted == '' else last_contacted
         room.follow_up_needed = data.get('follow_up_needed', room.follow_up_needed)
-        room.notes = data.get('notes', room.notes)
-        if 'geometry' in data:
-            room.geometry = GEOSGeometry(json.dumps(data['geometry']))
+        room.notes = data.get('notes', room.notes) if data.get('notes', room.notes) != '' else ''
+        # if 'geometry' in data:
+        #     room.geometry = GEOSGeometry(json.dumps(data['geometry']))
         room.save()
         return JsonResponse({'status': 'success'}, status=200)
 
