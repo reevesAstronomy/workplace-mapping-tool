@@ -10,8 +10,6 @@ let map;
 let selectedRoom = null;
 let roomDetails = {};
 
-test = null;
-
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -313,37 +311,44 @@ function updateFloorPlan() {
                 let layer = L.geoJSON(geometry);
                 layer.feature = feature;  // Attach the feature data to the layer
                 layer.id = feature.properties.id; // Attach the room id to the layer
-                layer.on('click', onRoomSelected);
+                layer.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e); // Prevents the event from bubbling up
+                    onRoomSelected(e);
+                });
                 drawnItems.addLayer(layer);
             });
         });
 
-        // event listeners for draw:created and draw:edited
-        map.on('draw:created', function (e) {
-        let layer = e.layer;
-        drawnItems.addLayer(layer);
-        saveGeoJSON().then(response => {
-            let room = response.room;  // Changed this line
-            if (room) {
-                layer.feature = {
-                    type: 'Feature',
-                    properties: room,
-                    geometry: layer.toGeoJSON().geometry
-                };
-                test = room;
-                layer.id = room.pk; // Attach the room id to the layer
-                layer.on('click', onRoomSelected);
-              }
-            });
+        map.on('click', function(e) {
+            deselectRoom();
         });
 
+        // event listeners for draw:created and draw:edited
+        map.on('draw:created', function (e) {
+            let layer = e.layer;
+            drawnItems.addLayer(layer);
+            saveGeoJSON().then(response => {
+                let room = response.room;  // Changed this line
+                if (room) {
+                    layer.feature = {
+                        type: 'Feature',
+                        properties: room,
+                        geometry: layer.toGeoJSON().geometry
+                    };
+                    layer.id = room.pk; // Attach the room id to the layer
+                    layer.on('click', function(e) {
+                        L.DomEvent.stopPropagation(e); // Prevents the event from bubbling up
+                        onRoomSelected(e);
+                    });
+                  }
+            });
+        });
 
 
         map.on('draw:edited', function (e) {
                 saveGeoJSON();
             });
         };
-
 
         // Set up Leaflet.draw
         const drawControl = new L.Control.Draw({
@@ -371,6 +376,14 @@ function updateFloorPlan() {
 
         // Make sure the map stretches to fit the div
         map.invalidateSize();
+
+        // // Make sure the current room will be de-selected when user clicks outside room polygons
+        // map.on('click', function(e) {
+        //     if (!e.originalEvent._stopped) { // This means the click was not on a room (polygon)
+        //         deselectRoom(); // Call your deselect function
+        //     }
+        // });
+
 
     } else {
         document.getElementById('floor-name').textContent = '';
