@@ -23,7 +23,6 @@ def floorplan_data(request, location_id):
 
 @csrf_exempt
 def save_room_data(request, location_id, floorplan_id):
-
     if request.method == 'POST':
         try:
             geometry_data = json.loads(request.body)
@@ -36,6 +35,10 @@ def save_room_data(request, location_id, floorplan_id):
             # This function returns a string, so we need to convert it back to a dictionary
             room_data = serialize('json', [room])
             room_data = json.loads(room_data)[0]  # Convert the serialized data back to a dictionary
+
+            # Rename 'pk' to 'id' for consistency
+            room_data['fields']['id'] = room_data['pk']
+            del room_data['pk']
 
             return JsonResponse({'status': 'success', 'room': room_data}, status=200)
         except (json.JSONDecodeError, KeyError, FloorPlan.DoesNotExist):
@@ -111,3 +114,17 @@ def room_detail_data(request, location_id, floorplan_id, room_id):
 
     else:
         return JsonResponse({'status': 'failure', 'error': 'Invalid request method'}, status=400)
+
+def room_types(request):
+    if request.method == 'GET':
+        return JsonResponse(dict(Room.ROOM_TYPES), safe=False)
+    else:
+        return JsonResponse({'status': 'failure', 'error': 'Invalid request method'}, status=400)
+
+
+# def room_types(request):
+#     if request.method == 'GET':
+#         room_types = [room_type[0] for room_type in Room.ROOM_TYPES]
+#         return JsonResponse(room_types, safe=False)
+#     else:
+#         return JsonResponse({'status': 'failure', 'error': 'Invalid request method'}, status=400)

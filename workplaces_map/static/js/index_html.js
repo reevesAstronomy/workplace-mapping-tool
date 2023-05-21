@@ -9,6 +9,7 @@ let drawnItems = L.featureGroup(); // Initialize drawnItems as an empty Leaflet 
 let map;
 let selectedRoom = null;
 let roomDetails = {};
+let roomTypes = null;
 
 function getCookie(name) {
     let cookieValue = null;
@@ -107,10 +108,19 @@ function deselectRoom() {
 function saveRoomDetails() {
     // Gather the updated details from the form
     roomDetails.room_name = document.getElementById('room-name').value;
+    roomDetails.room_type = document.getElementById('room-type').value; // <-- Add this line
     roomDetails.workers_count = document.getElementById('workers-count').value;
     roomDetails.last_contacted = document.getElementById('last-contacted').value;
     roomDetails.follow_up_needed = document.getElementById('follow-up-needed').checked;
     roomDetails.notes = document.getElementById('notes').value;
+
+    // Mostly inserted this kinda reduundant code for consistency
+    // selectedRoom.feature.properties.room_name = roomDetails.room_name;
+    // selectedRoom.feature.properties.room_type = roomDetails.room_type; // <-- Add this line
+    // selectedRoom.feature.properties.workers_count = roomDetails.workers_count;
+    // selectedRoom.feature.properties.last_contacted = roomDetails.last_contacted;
+    // selectedRoom.feature.properties.follow_up_needed = roomDetails.follow_up_needed;
+    // selectedRoom.feature.properties.notes = roomDetails.notes;
 
     fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/rooms/${selectedRoom.feature.properties.id}/`, {
         method: 'POST',
@@ -135,12 +145,11 @@ function saveRoomDetails() {
 }
 
 
-
 // Function for the displaying of the room infobox
 function toggleRoomInfo() {
     let roomInfo = document.getElementById('room-info');
     let roomInfoMessage = document.getElementById('room-info-message');
-    let formElements = document.querySelectorAll('#room-info input, #room-info textarea, #room-info button');
+    let formElements = document.querySelectorAll('#room-info input, #room-info textarea, #room-info button, #room-info select');
 
     if (selectedRoom) {
         roomInfo.style.display = 'block';
@@ -161,15 +170,15 @@ function onRoomSelected(e) {
         fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/rooms/${selectedRoom.id}/`)
             .then(response => response.json())
             .then(data => {
-                roomDetails = data.features[0].properties;  // Update this line
+                roomDetails = data.features[0].properties;
                 toggleRoomInfo();
+                populateRoomTypes(roomTypes); // Populate room types in room-types drop-down
                 displayRoomDetails();
             });
     } else {
         console.error('Error: No target element found in onRoomSelected');
     }
 }
-
 
 // Display room details
 function displayRoomDetails() {
@@ -178,11 +187,25 @@ function displayRoomDetails() {
 
     document.getElementById('room-info').classList.remove('disabled');
     document.getElementById('room-name').value = roomDetails.room_name;
+    document.getElementById('room-type').value = roomDetails.room_type || '';
     document.getElementById('workers-count').value = roomDetails.workers_count || '';
     document.getElementById('last-contacted').value = roomDetails.last_contacted || '';
     document.getElementById('follow-up-needed').checked = roomDetails.follow_up_needed;
     document.getElementById('notes').value = roomDetails.notes;
 }
+
+function populateRoomTypes(roomTypes) {
+  const roomTypeSelect = document.getElementById('room-type');
+  // Clear options first
+  roomTypeSelect.innerHTML = '';
+  Object.entries(roomTypes).forEach(([key, value]) => {
+    const option = document.createElement('option');
+    option.value = key;
+    option.text = value;
+    roomTypeSelect.appendChild(option);
+  });
+}
+
 
 // *****************************************
 // Floor plans stuff below
@@ -229,7 +252,6 @@ function getFloorPlans(locationId) {
 }
 
 
-
 function saveGeoJSON() {
     let geojson = drawnItems.toGeoJSON();
     let lastFeatureGeometry = geojson.features[geojson.features.length - 1].geometry;
@@ -256,7 +278,6 @@ function saveGeoJSON() {
         return null;
     });
 }
-
 
 
 function updateFloorPlan() {
@@ -328,22 +349,24 @@ function updateFloorPlan() {
             let layer = e.layer;
             drawnItems.addLayer(layer);
             saveGeoJSON().then(response => {
-                let room = response.room;  // Changed this line
+                let room = response.room;
                 if (room) {
                     layer.feature = {
                         type: 'Feature',
                         properties: room,
                         geometry: layer.toGeoJSON().geometry
                     };
-                    layer.id = room.pk; // Attach the room id to the layer
+                    room.id = room.fields.id
+                    layer.id = room.id;
+                    // Here, we immediately set selectedRoom to be the newly created room.
+                    selectedRoom = room;
                     layer.on('click', function(e) {
-                        L.DomEvent.stopPropagation(e); // Prevents the event from bubbling up
+                        L.DomEvent.stopPropagation(e);
                         onRoomSelected(e);
                     });
-                  }
+                }
             });
         });
-
 
         map.on('draw:edited', function (e) {
                 saveGeoJSON();
@@ -377,13 +400,6 @@ function updateFloorPlan() {
         // Make sure the map stretches to fit the div
         map.invalidateSize();
 
-        // // Make sure the current room will be de-selected when user clicks outside room polygons
-        // map.on('click', function(e) {
-        //     if (!e.originalEvent._stopped) { // This means the click was not on a room (polygon)
-        //         deselectRoom(); // Call your deselect function
-        //     }
-        // });
-
 
     } else {
         document.getElementById('floor-name').textContent = '';
@@ -397,6 +413,7 @@ function addEventListenersToElements() {
     document.getElementById('save').addEventListener('click', function() {
         if (selectedRoom) {
             roomDetails.name = document.getElementById('room-name').value;
+            roomDetails.roomType = document.getElementById('room-type').value;
             roomDetails.workersCount = document.getElementById('workers-count').value;
             roomDetails.lastContacted = document.getElementById('last-contacted').value;
             roomDetails.followUpNeeded = document.getElementById('follow-up-needed').value;
@@ -412,7 +429,17 @@ function addEventListenersToElements() {
     });
 }
 
+// Load room types for the "Room types" drop-down box
+function getRoomTypes() {
+  return fetch('/data/room_types/')
+    .then(response => response.json())
+    .catch(error => console.error('Error:', error));
+}
+
 window.onload = function() {
     getLocations();
     addEventListenersToElements();
+    getRoomTypes().then(data => {
+        roomTypes = data;
+    });
 };
