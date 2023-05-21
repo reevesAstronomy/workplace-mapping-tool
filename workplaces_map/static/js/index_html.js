@@ -108,19 +108,19 @@ function deselectRoom() {
 function saveRoomDetails() {
     // Gather the updated details from the form
     roomDetails.room_name = document.getElementById('room-name').value;
-    roomDetails.room_type = document.getElementById('room-type').value; // <-- Add this line
+    roomDetails.room_type = document.getElementById('room-type').value;
     roomDetails.workers_count = document.getElementById('workers-count').value;
     roomDetails.last_contacted = document.getElementById('last-contacted').value;
     roomDetails.follow_up_needed = document.getElementById('follow-up-needed').checked;
     roomDetails.notes = document.getElementById('notes').value;
 
-    // Mostly inserted this kinda reduundant code for consistency
-    // selectedRoom.feature.properties.room_name = roomDetails.room_name;
-    // selectedRoom.feature.properties.room_type = roomDetails.room_type; // <-- Add this line
-    // selectedRoom.feature.properties.workers_count = roomDetails.workers_count;
-    // selectedRoom.feature.properties.last_contacted = roomDetails.last_contacted;
-    // selectedRoom.feature.properties.follow_up_needed = roomDetails.follow_up_needed;
-    // selectedRoom.feature.properties.notes = roomDetails.notes;
+    // Need to update the selectedRoom object as well
+    selectedRoom.feature.properties.room_name = roomDetails.room_name;
+    selectedRoom.feature.properties.room_type = roomDetails.room_type;
+    selectedRoom.feature.properties.workers_count = roomDetails.workers_count;
+    selectedRoom.feature.properties.last_contacted = roomDetails.last_contacted;
+    selectedRoom.feature.properties.follow_up_needed = roomDetails.follow_up_needed;
+    selectedRoom.feature.properties.notes = roomDetails.notes;
 
     fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/rooms/${selectedRoom.feature.properties.id}/`, {
         method: 'POST',
@@ -138,6 +138,14 @@ function saveRoomDetails() {
     })
     .then(data => {
         console.log('Success:', data);
+        // Update the room color
+        console.log('!!!', selectedRoom.feature.properties.id)
+        feature = selectedRoom.feature
+        geometry = selectedRoom.feature.geometry
+        drawnItems.removeLayer(selectedRoom); // Remove the old layer
+        let newLayer = createStyledRoomLayer(feature, geometry, onRoomSelected); // Create a new layer with updated style
+        drawnItems.addLayer(newLayer); // Add the new layer to the map
+        selectedRoom = newLayer.feature; // Make the new layer the selected room
     })
     .catch((error) => {
         console.error('Error:', error);
@@ -279,7 +287,32 @@ function saveGeoJSON() {
     });
 }
 
+function createStyledRoomLayer(roomFeature, geometry, onRoomSelectedCallback) {
+    let layerColor;
+    if (roomFeature.properties.follow_up_needed) {
+        layerColor = 'orange'; // follow-up is needed
+    } else if (roomFeature.properties.last_contacted) {
+        layerColor = 'green'; // no follow-up is needed, and there's a date
+    } else {
+        layerColor = 'blue'; // no follow-up is needed, but no date
+    }
 
+    let layer = L.geoJSON(geometry, {
+        style: function() {
+            return { color: layerColor, weight: 1, fillColor: layerColor, fillOpacity: 0.3 };
+        }
+    });
+
+    layer.feature = roomFeature;  // Attach the feature data to the layer
+    layer.id = roomFeature.properties.id; // Attach the room id to the layer
+    layer.on('click', function(e) {
+        L.DomEvent.stopPropagation(e); // Prevents the event from bubbling up
+        onRoomSelectedCallback(e);
+    });
+
+    selectedRoom = layer;  // Store the created layer in selectedRoom
+    return layer;
+}
 function updateFloorPlan() {
     const floorPlanContainer = document.querySelector('.floor-plan-container');
     floorPlanContainer.innerHTML = '';  // Clear previous floor plan
@@ -325,20 +358,15 @@ function updateFloorPlan() {
 
         // Fetch all the rooms geometry and add it to the map
         fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/get_rooms/`)
-        .then(response => response.json())
-        .then(data => {
-            data.features.forEach(feature => {
-                let geometry = feature.geometry;
-                let layer = L.geoJSON(geometry);
-                layer.feature = feature;  // Attach the feature data to the layer
-                layer.id = feature.properties.id; // Attach the room id to the layer
-                layer.on('click', function(e) {
-                    L.DomEvent.stopPropagation(e); // Prevents the event from bubbling up
-                    onRoomSelected(e);
-                });
-                drawnItems.addLayer(layer);
-            });
+            .then(response => response.json())
+            .then(data => {
+                data.features.forEach(feature => {
+                  let geometry = feature.geometry;
+                  let layer = createStyledRoomLayer(feature, geometry, onRoomSelected);
+                  drawnItems.addLayer(layer);
+              });
         });
+
 
         map.on('click', function(e) {
             deselectRoom();

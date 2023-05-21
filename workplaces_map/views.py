@@ -99,7 +99,7 @@ def room_detail_data(request, location_id, floorplan_id, room_id):
     elif request.method == 'POST':
         # Update the room details
         data = json.loads(request.body)
-        room.room_name = data.get('room_name', room.room_name) if data.get('room_name', room.room_name) != '' else 'Unnamed Room'
+        room.room_name = data.get('room_name', room.room_name) if data.get('room_name', room.room_name) != '' else ''
         room.room_type = data.get('room_type', room.room_type) if data.get('room_type', room.room_type) != '' else 'OF'
         workers_count = data.get('workers_count', room.workers_count)
         room.workers_count = None if workers_count == '' else int(workers_count)
