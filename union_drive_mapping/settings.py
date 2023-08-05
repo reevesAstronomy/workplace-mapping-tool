@@ -21,13 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7^6&(d2a=$p0&k(j4@yba5ng*fr=s+l5e9+px3cgd^p7vf#@km'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG') == 'True'
 
-ALLOWED_HOSTS = ['15.222.69.219']
-
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS').split(',')
 
 # Application definition
 
@@ -85,22 +84,14 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         # 'ENGINE': 'django.contrib.gis.db.backends.spatialite',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'mydatabase',
-        'USER': 'superuser',
-        'PASSWORD': 'hotlaboursummer2023',
-        'HOST': 'localhost',
-        'PORT': '',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', ''),
     }
 }
 
