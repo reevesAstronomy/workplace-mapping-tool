@@ -8,6 +8,7 @@ let locations = [];
 let drawnItems = L.featureGroup(); // Initialize drawnItems as an empty Leaflet Feature Group
 let map;
 let selectedRoom = null;
+let previouslySelectedRoom = null;
 let roomDetails = {};
 let roomTypes = null;
 
@@ -98,6 +99,16 @@ document.getElementById('next').addEventListener('click', () => {
 
 // Deselect room
 function deselectRoom() {
+    // update recently selected room to be null
+    if (previouslySelectedRoom) {
+        previouslySelectedRoom.setStyle({
+            weight: 1,  // Restore previous border weight
+            fillOpacity: 0.3 // Restore previous fill opacity
+        });
+        previouslySelectedRoom = null;  // Reset the previouslySelectedRoom
+    }
+
+    // Update
     selectedRoom = null;
     document.getElementById('room-info').classList.add('disabled');
     document.getElementById('room-info-message').style.display = 'block';
@@ -174,6 +185,22 @@ function toggleRoomInfo() {
 // When a room is selected
 function onRoomSelected(e) {
     if (e.target) {
+
+        // If there was a previously selected room, revert its style
+        if (previouslySelectedRoom) {
+            previouslySelectedRoom.setStyle({
+                weight: 1,  // Restore previous border weight
+                fillOpacity: 0.3 // Restore previous fill opacity
+            });
+        }
+        // Highlight the selected room
+        e.target.setStyle({
+            weight: 5,  // Make the border thicker
+            fillOpacity: 0.7  // Make the fill more opaque
+        });
+        previouslySelectedRoom = e.target;  // Update the previouslySelectedRoom to the current one
+
+        // Now update which room is selected
         selectedRoom = e.target;
         fetch(`/data/locations/${selectedLocationId}/floorplans/${floorPlans[currentFloorPlanIndex].id}/rooms/${selectedRoom.id}/`)
             .then(response => response.json())
