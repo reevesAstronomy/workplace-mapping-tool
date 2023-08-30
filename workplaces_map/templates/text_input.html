@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Text Input</h1>
+
+<!-- Option code snippet to catch possible errors -->
+{% if form.errors %}
+    <div class="alert alert-danger">
+        <ul>
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="name">Your Name</label>
+        <input type="text" class="form-control" name="name" required>
+    </div>
+    <div class="form-group">
+        <label for="notes">Rooms visited and other notes</label>
+        <br> Include: building, room #, # workers that share the room, whether follow-up is needed.
+        <br> Please specify if rooms are not offices (eg are lounges, etc.) and include other helpful notes as needed.
+        <br>
+        <textarea class="form-control" name="notes" rows="5" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+<h2>Previous Entries</h2>
+{% for entry in previous_entries %}
+    <div class="entry">
+        <h3>{{ entry.name }}</h3>
+        <p>{{ entry.notes }}</p>
+        <p><small>Submitted at {{ entry.created_at }}</small></p>
+    </div>
+{% endfor %}
+{% endblock %}

@@ -19,3 +19,8 @@ class Room(models.Model):
     last_contacted = models.DateField(null=True, blank=True)  # Date last contacted
     follow_up_needed = models.BooleanField(default=False)  # Follow-up need
     notes = models.TextField(blank=True)  # Notes
+
+class TextInput(models.Model):
+    name = models.CharField(max_length=100)
+    notes = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

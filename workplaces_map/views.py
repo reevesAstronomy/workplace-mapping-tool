@@ -3,10 +3,11 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, Http404, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django_loci.models import Location, FloorPlan
-from .models import Room
+from .models import Room, TextInput
 from django.core.serializers import serialize
 from django.contrib.gis.geos import GEOSGeometry
 from django.forms.models import model_to_dict
+from .forms import TextInputForm
 
 
 def index(request):
@@ -121,10 +122,16 @@ def room_types(request):
     else:
         return JsonResponse({'status': 'failure', 'error': 'Invalid request method'}, status=400)
 
+### ### ###
+def text_input(request):
+    if request.method == 'POST':
+        form = TextInputForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('workplaces_map:text_input')
 
-# def room_types(request):
-#     if request.method == 'GET':
-#         room_types = [room_type[0] for room_type in Room.ROOM_TYPES]
-#         return JsonResponse(room_types, safe=False)
-#     else:
-#         return JsonResponse({'status': 'failure', 'error': 'Invalid request method'}, status=400)
+    else:
+        form = TextInputForm()
+
+    previous_entries = TextInput.objects.all().order_by('-created_at')
+    return render(request, 'text_input.html', {'form': form, 'previous_entries': previous_entries})
