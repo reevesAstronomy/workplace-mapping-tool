@@ -10,7 +10,7 @@ local_settings.py
 db.sqlite3
 
 # 
-./workplaces_map/productionfiles/
+workplaces_map/productionfiles/
 
 # Python # 
 *.py[cod]
