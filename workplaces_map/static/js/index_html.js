@@ -118,6 +118,8 @@ function deselectRoom() {
 // Save room details
 function saveRoomDetails() {
     // Gather the updated details from the form
+    console.log('getElementById check:')
+    console.log(document.getElementById('room-name').value);
     roomDetails.room_name = document.getElementById('room-name').value;
     roomDetails.room_type = document.getElementById('room-type').value;
     roomDetails.workers_count = document.getElementById('workers-count').value;
@@ -126,6 +128,8 @@ function saveRoomDetails() {
     roomDetails.notes = document.getElementById('notes').value;
 
     // Need to update the selectedRoom object as well
+    console.log('selectedRoom properties')
+    console.log(selectedRoom.feature.properties)
     selectedRoom.feature.properties.room_name = roomDetails.room_name;
     selectedRoom.feature.properties.room_type = roomDetails.room_type;
     selectedRoom.feature.properties.workers_count = roomDetails.workers_count;
@@ -148,15 +152,17 @@ function saveRoomDetails() {
         return response.json();
     })
     .then(data => {
-        console.log('Success:', data);
+        // console.log('Success:', data);
         // Update the room color
-        console.log('!!!', selectedRoom.feature.properties.id)
         feature = selectedRoom.feature
         geometry = selectedRoom.feature.geometry
         drawnItems.removeLayer(selectedRoom); // Remove the old layer
         let newLayer = createStyledRoomLayer(feature, geometry, onRoomSelected); // Create a new layer with updated style
         drawnItems.addLayer(newLayer); // Add the new layer to the map
-        selectedRoom = newLayer.feature; // Make the new layer the selected room
+        selectedRoom.feature = newLayer.feature; // Make the new layer the selected room
+
+        // Disable the save button
+        document.getElementById('save').disabled = true;
     })
     .catch((error) => {
         console.error('Error:', error);
@@ -337,7 +343,6 @@ function createStyledRoomLayer(roomFeature, geometry, onRoomSelectedCallback) {
         onRoomSelectedCallback(e);
     });
 
-    selectedRoom = layer;  // Store the created layer in selectedRoom
     return layer;
 }
 function updateFloorPlan() {
@@ -390,6 +395,7 @@ function updateFloorPlan() {
                 data.features.forEach(feature => {
                   let geometry = feature.geometry;
                   let layer = createStyledRoomLayer(feature, geometry, onRoomSelected);
+                  selectedRoom = layer;  // Store the created layer in selectedRoom
                   drawnItems.addLayer(layer);
               });
         });
@@ -475,6 +481,15 @@ function addEventListenersToElements() {
             roomDetails.notes = document.getElementById('notes').value;
             saveRoomDetails();
         }
+    });
+
+    // Enable save button on any input change
+    let inputFields = ['room-name', 'room-type', 'workers-count', 'last-contacted', 'follow-up-needed', 'notes'];
+    inputFields.forEach(fieldId => {
+        document.getElementById(fieldId).addEventListener('input', function() {
+            document.getElementById('save').disabled = false;
+            toggleRoomInfo();
+        });
     });
 
     // Deselect room when the cancel button is clicked
