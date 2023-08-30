@@ -97,6 +97,12 @@ document.getElementById('next').addEventListener('click', () => {
     }
 });
 
+function updateFloorNumber() {
+    const floorNumberElement = document.getElementById('floor-number');
+    floorNumberElement.textContent = "Floor " + (currentFloorPlanIndex + 1); // Assuming index starts from 0
+}
+
+
 // Deselect room
 function deselectRoom() {
     // update recently selected room to be null
@@ -350,6 +356,7 @@ function updateFloorPlan() {
     floorPlanContainer.innerHTML = '';  // Clear previous floor plan
 
     if (floorPlans.length > 0 && currentFloorPlanIndex >= 0) {
+        updateFloorNumber();  // Update the displayed floor number
         let floorPlan = floorPlans[currentFloorPlanIndex];
         document.getElementById('floor-name').textContent = currentLocationName;
 
