@@ -1,6 +1,8 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+<link rel="shortcut icon" type="image/png" href="{% static 'images/workplace-mapping.png' %}" >
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,13 +26,16 @@
     <nav class="navbar navbar-default navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
-                <a class="navbar-brand" href="/">Map</a>
+                <a class="navbar-brand" href="/" style="display: flex; align-items: center;">
+                    <img src="{% static 'images/workplace-mapping.png' %}" alt="Map Icon" style="height: 1.5em; margin-right: 5px;">
+                    Map
+                </a>
             </div>
             <ul class="nav navbar-nav navbar-left">
-                <li><a href="{% url 'workplaces_map:text_input' %}">Text Input</a></li>
+                <li><a class="navbar-brand" href="{% url 'workplaces_map:text_input' %}">Text Input</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                <li><a href="/admin/">Admin/upload floorplans</a></li>
+                <li><a class="navbar-brand" href="/admin/">Admin/upload floorplans</a></li>
             </ul>
         </div>
     </nav>
