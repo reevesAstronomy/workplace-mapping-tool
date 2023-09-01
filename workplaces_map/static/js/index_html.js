@@ -504,6 +504,39 @@ function addEventListenersToElements() {
         deselectRoom();
         toggleRoomInfo();
     });
+
+    // Handle delete button functionality:
+    const confirmButton = document.getElementById('confirmDeleteButton');
+    confirmButton.onclick = function () {
+      const roomId = selectedRoom.id;
+      const locationId = selectedLocationId;
+      const floorplanId = floorPlans[currentFloorPlanIndex].id;
+      // Send a DELETE request
+      fetch(`/data/locations/${locationId}/floorplans/${floorplanId}/rooms/${roomId}/`, {
+          method: 'DELETE',
+      })
+      .then((response) => response.json())
+      .then((data) => {
+          if (data.status === 'success') {
+              // Successfully deleted
+              // Refresh the list or remove the deleted item from the DOM
+          } else {
+              // Handle error
+          }
+      });
+
+      $('#confirmDeleteModal').modal('hide'); // Close the modal (Bootstrap 3.4.1)
+      deleteRoomById(roomId); // Update floor plan after room is deleted (want the user to see that the room is now deleted!)
+  };
+}
+
+// Function to delete a room polygon, given a room's id
+function deleteRoomById(roomId) {
+    drawnItems.eachLayer(function (layer) {
+        if (layer.id === roomId) {
+            drawnItems.removeLayer(layer);
+        }
+    });
 }
 
 // Load room types for the "Room types" drop-down box

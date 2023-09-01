@@ -21,3 +21,15 @@
     height: 16px;
     margin-right: 5px;
 }
+
+.btn-delete {
+    color: red;
+}
+.button-wrapper {
+    display: flex;
+    justify-content: space-between;
+}
+
+.left-buttons {
+    display: flex;
+}

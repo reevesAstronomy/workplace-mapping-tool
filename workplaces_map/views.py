@@ -112,7 +112,10 @@ def room_detail_data(request, location_id, floorplan_id, room_id):
         #     room.geometry = GEOSGeometry(json.dumps(data['geometry']))
         room.save()
         return JsonResponse({'status': 'success'}, status=200)
-
+    elif request.method == 'DELETE':
+        print("DELETE", room, " room", location_id, floorplan_id, room_id)
+        room.delete()
+        return JsonResponse({'status': 'success'}, status=200)
     else:
         return JsonResponse({'status': 'failure', 'error': 'Invalid request method'}, status=400)
 
