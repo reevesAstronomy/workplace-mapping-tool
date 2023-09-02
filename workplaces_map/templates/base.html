@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Union drive mapping</title>
+    <title>Workplace Mapping App</title>
 
     <link rel="stylesheet" href="{% static 'css/base_html.css' %}" />
     <link rel="shortcut icon" type="image/png" href="{% static 'bootstrap-icons-1.10.5/favicon.ico' %}"/>
@@ -23,6 +23,7 @@
     </style> -->
 </head>
 <body>
+
     <nav class="navbar navbar-default navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
@@ -36,6 +37,7 @@
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 <li><a class="navbar-brand" href="/admin/">Admin/upload floorplans</a></li>
+                <li><a class="navbar-brand"  href="{% url 'workplaces_map:user_logout' %}">Logout</a></li>
             </ul>
         </div>
     </nav>

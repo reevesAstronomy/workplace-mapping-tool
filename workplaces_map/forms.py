@@ -1,5 +1,5 @@
 from django import forms
-from .models import Room, TextInput #Building, Floor, 
+from .models import Room, TextInput #Building, Floor,
 
 # class BuildingForm(forms.ModelForm):
 #     class Meta:
@@ -18,6 +18,10 @@ from .models import Room, TextInput #Building, Floor,
 #             'floor', 'label', 'polygon_data', 'staff_count', 'visited', 'visited_date',
 #             'notes', 'target_status', 'last_talked_to'
 #         ]
+
+class LoginForm(forms.Form):
+    username = forms.CharField()
+    password = forms.CharField(widget=forms.PasswordInput)
 
 class TextInputForm(forms.ModelForm):
     class Meta:
