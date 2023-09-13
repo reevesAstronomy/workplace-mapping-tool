@@ -99,8 +99,16 @@ document.getElementById('next').addEventListener('click', () => {
 
 function updateFloorNumber() {
     const floorNumberElement = document.getElementById('floor-number');
-    floorNumberElement.textContent = "Floor " + (currentFloorPlanIndex + 1); // Assuming index starts from 0
+
+    if (floorPlans[currentFloorPlanIndex].floor === 0) {
+        floorNumberElement.textContent = "Ground Floor";
+    } else if (floorPlans[currentFloorPlanIndex].floor < 0) {
+        floorNumberElement.textContent = "Basement " + Math.abs(floorPlans[currentFloorPlanIndex].floor);
+    } else {
+        floorNumberElement.textContent = "Floor " + floorPlans[currentFloorPlanIndex].floor;
+    }
 }
+
 
 
 // Deselect room
