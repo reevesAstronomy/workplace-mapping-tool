@@ -7,7 +7,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.forms.models import model_to_dict
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from .forms import LoginForm, TextInputForm
+from django import forms
+from .forms import LoginForm, TextInputForm, IsMappedForm
 from django_loci.models import Location, FloorPlan
 from .models import Room, TextInput
 
@@ -104,6 +105,7 @@ def room_data(request, location_id, floorplan_id):
 
 
 @csrf_exempt
+@login_required
 def room_detail_data(request, location_id, floorplan_id, room_id):
     """
     A GET request will return the details of the specified room, and a POST request
@@ -151,14 +153,27 @@ def room_types(request):
 ### ### ###
 @login_required
 def text_input(request):
-    if request.method == 'POST':
+    form = TextInputForm()
+    previous_entries = TextInput.objects.all().order_by('-created_at')
+    EntryFormSet = forms.modelformset_factory(TextInput, form=IsMappedForm, extra=0)
+    formset = EntryFormSet(queryset=previous_entries)
+
+    # Check for the update button click
+    if 'update' in request.POST:
+        formset = EntryFormSet(request.POST)
+        if formset.is_valid():
+            formset.save()
+            return redirect('workplaces_map:text_input')
+        else:
+            print(formset.errors)  # This can help you see any errors related to the formset.
+
+
+    # Check if the submit button was pressed
+    elif request.method == 'POST':
         form = TextInputForm(request.POST)
-        if form.is_valid():
+        if form.is_valid() and form.cleaned_data['name'] and form.cleaned_data['notes']:
             form.save()
             return redirect('workplaces_map:text_input')
 
-    else:
-        form = TextInputForm()
-
-    previous_entries = TextInput.objects.all().order_by('-created_at')
-    return render(request, 'text_input.html', {'form': form, 'previous_entries': previous_entries})
+    merged_entries = zip(previous_entries, formset)
+    return render(request, 'text_input.html', {'form': form, 'merged_entries': merged_entries, 'formset': formset})

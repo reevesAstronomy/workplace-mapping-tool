@@ -26,4 +26,11 @@ class LoginForm(forms.Form):
 class TextInputForm(forms.ModelForm):
     class Meta:
         model = TextInput
-        fields = ['name', 'notes']
+        fields = ['name', 'notes', 'is_mapped']
+
+class IsMappedForm(forms.ModelForm):
+    is_mapped = forms.BooleanField(required=False)
+
+    class Meta:
+        model = TextInput
+        fields = ['is_mapped']

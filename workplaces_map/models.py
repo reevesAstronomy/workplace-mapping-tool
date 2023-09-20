@@ -24,3 +24,4 @@ class TextInput(models.Model):
     name = models.CharField(max_length=100)
     notes = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    is_mapped = models.BooleanField(default=False)
