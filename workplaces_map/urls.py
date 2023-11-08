@@ -8,6 +8,7 @@ app_name = 'workplaces_map'
 urlpatterns = [
     path('', views.index, name='index'),
     path('data/locations/', views.locations_data, name='locations_data'),
+    path('data/update-building-priority/<str:location_id>/', views.update_building_priority, name='update_building_priority'),
     path('data/locations/<str:location_id>/floorplans/', views.floorplan_data, name='floorplan_data'),
     path('data/locations/<str:location_id>/floorplans/<str:floorplan_id>/save_rooms/', views.save_room_data, name='save_room_data'),
     path('data/locations/<str:location_id>/floorplans/<str:floorplan_id>/get_rooms/', views.room_data, name='room_data'),

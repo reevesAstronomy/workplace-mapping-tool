@@ -65,3 +65,41 @@
     margin-top: 0;
     padding-left: 0;
 }
+
+.container-right {
+    padding-right: 0; /* Ensures no padding is causing width issues */
+    padding-left: 0;  /* Ensures no padding is causing width issues */
+}
+
+.floor-plan-container {
+    overflow-x: auto; /* Allows horizontal scrolling if necessary */
+    max-width: 100%; /* Prevents the container from exceeding the viewport width */
+    margin-left: -15px; /* Adjusts for any negative margins that may cause overflow */
+    margin-right: -15px; /* Adjusts for any negative margins that may cause overflow */
+}
+
+
+
+/* some buildings list stuff */
+
+.priority-indicator {
+    display: inline-block;
+    margin-right: 8px; /* Adjust spacing as needed */
+    width: 24px; /* Or your preferred size */
+    height: 24px; /* Or your preferred size */
+    border-radius: 50%; /* Makes it a circle */
+    text-align: center; /* Center the icon in the circle */
+    vertical-align: middle; /* Aligns with the text */
+}
+
+.bg-grey { background-color: #808080; /* Or any grey color you prefer */ }
+.bg-green { background-color: #28a745; }
+.bg-yellow { background-color: #ffc107; }
+.bg-red { background-color: #dc3545; }
+
+/* Styling for the icons themselves */
+.bi {
+    /* Bootstrap icons class styling if needed */
+    color: white; /* White icons on colored background */
+    line-height: 24px; /* Aligns icon vertically */
+}

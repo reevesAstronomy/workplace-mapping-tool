@@ -11,6 +11,7 @@ let selectedRoom = null;
 let previouslySelectedRoom = null;
 let roomDetails = {};
 let roomTypes = null;
+let selectedBuildingPriority = null;
 
 function getCookie(name) {
     let cookieValue = null;
@@ -35,51 +36,215 @@ function getLocations() {
     fetch('/data/locations/')
         .then(response => response.json())
         .then(data => {
-            locations = data;
+            locations = data.sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name
             renderLocations();
         });
 }
 
+
 function renderLocations() {
     let list = document.getElementById('location-list');
+    let buildingPrioritySelect = document.getElementById('building-priority-select');
+
     list.innerHTML = '';
     let searchValue = document.getElementById('search').value.toLowerCase();
+
+    // Assume no building is selected initially
+    let isBuildingSelected = false;
+
+    // Add event listener to update button
+    update_button = document.getElementById('update-priority-btn');
+    update_button.addEventListener('click', function() {
+        let selectedValue = document.getElementById('building-priority-select').value;
+        updateLocationPriority(selectedLocationId, selectedValue);
+    });
 
     locations.forEach((location, index) => {
         if (location.name.toLowerCase().includes(searchValue)) {
             let item = document.createElement('li');
-            item.textContent = location.name;
             item.classList.add('list-group-item', 'list-group-item-action');
 
-            // If this location is the selected one, add the 'active' class
-            if (location.id === selectedLocationId) {  // Add this line
-                item.classList.add('active');  // Add this line
-            }  // Add this line
+            // Create the priority indicator element
+            let priorityIndicator = document.createElement('span');
+            priorityIndicator.classList.add('priority-indicator');
+            let icon = document.createElement('i'); // Using <i> for the icon
 
-            item.addEventListener('click', () => {
-            // Remove 'active' class from previously selected item, if there is one
-            let previousSelectedItem = document.querySelector('.list-group-item.active');
-            if (previousSelectedItem) {
-                previousSelectedItem.classList.remove('active');
+            // Set the icon and color based on the building_priority
+            switch (location.building_priority) {
+                case 0:
+                    priorityIndicator.classList.add('bg-grey');
+                    priorityIndicator.title = 'None';
+                    break;
+                case 1:
+                    priorityIndicator.classList.add('bg-green');
+                    icon.classList.add('bi', 'bi-check-circle-fill');
+                    priorityIndicator.title = 'Done';
+                    break;
+                case 2:
+                    priorityIndicator.classList.add('bg-yellow');
+                    icon.classList.add('bi', 'bi-exclamation-circle-fill');
+                    priorityIndicator.title = 'Intermediate Priority';
+                    break;
+                case 3:
+                    priorityIndicator.classList.add('bg-red');
+                    icon.classList.add('bi', 'bi-exclamation-triangle-fill');
+                    priorityIndicator.title = 'High Priority';
+                    break;
+                default:
+                    priorityIndicator.classList.add('bg-grey');
+                    icon.classList.add('bi', 'bi-circle');
+                    priorityIndicator.title = 'Unknown';
+                    break;
             }
 
-            // Add 'active' class to the clicked item
-            item.classList.add('active');
+            priorityIndicator.appendChild(icon);
+            priorityIndicator.id = 'priority-indicator-' + location.id;
+            item.appendChild(priorityIndicator);
+            item.appendChild(document.createTextNode(` ${location.name}`));
 
-            // Store the location's ID
-            selectedLocationId = location.id;  // Add this line
+            item.addEventListener('click', function() {
+                let previousSelectedItem = document.querySelector('.list-group-item.active');
+                if (previousSelectedItem) {
+                    previousSelectedItem.classList.remove('active');
+                }
+                item.classList.add('active');
+                selectedLocationId = location.id;
 
-            // Call getFloorPlans() after the selectedLocationId is set
-            getFloorPlans(location.id);
-            currentLocationName = location.name;  // Store the location name
-            currentFloorPlanIndex = 0;  // Set to 0 when a location is clicked
-        });
+                getFloorPlans(location.id);
+                currentLocationName = location.name;
+                currentFloorPlanIndex = 0;
 
+                // Enable the dropdown and set its value to the current building's priority
+                buildingPrioritySelect.disabled = false;
+                update_button.disabled = false;
+                buildingPrioritySelect.value = location.building_priority.toString();
 
+                // Set the dropdown value either to the current building's priority or the stored selected priority if available
+                buildingPrioritySelect.value = selectedBuildingPriority !== null ? selectedBuildingPriority.toString() : location.building_priority.toString();
+
+                // Reset the selectedBuildingPriority after using it to set the dropdown
+                selectedBuildingPriority = null;
+
+            });
             list.appendChild(item);
+
+            // Check if the location is selected to set the dropdown state appropriately
+            if (location.id === selectedLocationId) {
+                isBuildingSelected = true;
+                buildingPrioritySelect.value = location.building_priority.toString();
+            }
         }
     });
+
+    // After rendering all locations, if a location is selected, set the dropdown value
+    if (selectedLocationId && selectedBuildingPriority !== null) {
+        buildingPrioritySelect.value = selectedBuildingPriority.toString();
+        selectedBuildingPriority = null; // Reset the stored priority
+    }
+
+    // Disable the dropdown if no building is selected
+    buildingPrioritySelect.disabled = !isBuildingSelected;
 }
+
+// Drop down for selecting priority setting for the currently selected building
+document.querySelectorAll('.dropdown-item').forEach(item => {
+  console.log('letsss gooooo')
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    const value = this.getAttribute('data-value');
+    const text = this.textContent.trim();
+    const locationId = selectedLocationId; // Ensure you have this variable available from your selection
+
+    // Update button text and hidden input value
+    document.getElementById('building-priority-dropdown').textContent = text;
+    document.getElementById('hidden-input-for-priority').value = value;
+
+    // Update UI and backend with the new value...
+    updateLocationPrioritySymbol(locationId, value);
+  });
+});
+
+function updateLocationPriority(locationId, newPriority) {
+    // Assuming 'selectedLocationId' is a global variable that holds the ID of the currently selected location.
+
+    fetch(`/data/update-building-priority/${locationId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken // Include CSRF token in your request header
+        },
+        body: JSON.stringify({ 'building_priority': newPriority })
+    })
+    .then(response => {
+        console.log('response')
+        console.log(response)
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Priority updated successfully!', data);
+        // Store the new priority globally
+        selectedBuildingPriority = newPriority;
+        // Update the UI accordingly
+        // Update the priority indicator for this location
+        updatePriorityIndicator(locationId, newPriority);
+        // renderLocations();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
+function updatePriorityIndicator(locationId, newPriority) {
+    let priorityIndicator = document.getElementById('priority-indicator-' + locationId);
+    if (!priorityIndicator) return; // Exit if the element is not found
+
+    // Remove all possible classes for indicators
+    priorityIndicator.className = 'priority-indicator'; // Reset the class list
+    let icon = priorityIndicator.querySelector('i'); // Assuming there's always an <i> element inside
+    icon.className = ''; // Reset icon classes
+
+    // Apply new classes based on the new priority
+    switch (parseInt(newPriority, 10)) {
+        case 0:
+            priorityIndicator.classList.add('bg-grey');
+            priorityIndicator.title = 'None';
+            break;
+        case 1:
+            priorityIndicator.classList.add('bg-green');
+            icon.classList.add('bi', 'bi-check-circle-fill');
+            priorityIndicator.title = 'Done';
+            break;
+        case 2:
+            priorityIndicator.classList.add('bg-yellow');
+            icon.classList.add('bi', 'bi-exclamation-circle-fill');
+            priorityIndicator.title = 'Intermediate Priority';
+            break;
+        case 3:
+            priorityIndicator.classList.add('bg-red');
+            icon.classList.add('bi', 'bi-exclamation-triangle-fill');
+            priorityIndicator.title = 'High Priority';
+            break;
+        default:
+            priorityIndicator.classList.add('bg-grey');
+            icon.classList.add('bi', 'bi-circle');
+            priorityIndicator.title = 'Unknown';
+            break;
+    }
+}
+
+
+// When a location is selected...
+function onLocationSelect(locationId) {
+    // Enable the dropdown and button
+    document.getElementById('building-priority-select').disabled = false;
+    document.getElementById('update-priority-btn').disabled = false;
+    // Set the dropdown value to the selected location's priority
+    document.getElementById('building-priority-select').value = selectedLocationPriority.toString();
+}
+
 
 document.getElementById('search').addEventListener('input', renderLocations);
 

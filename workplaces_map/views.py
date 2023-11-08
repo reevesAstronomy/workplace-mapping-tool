@@ -10,7 +10,10 @@ from django.contrib.auth.decorators import login_required
 from django import forms
 from .forms import LoginForm, TextInputForm, IsMappedForm
 from django_loci.models import Location, FloorPlan
-from .models import Room, TextInput
+from .models import Room, TextInput, ExtendedLocation
+from django.db.models import F
+from django.views.decorators.http import require_POST
+
 
 def user_login(request):
     if request.method == "POST":
@@ -37,9 +40,48 @@ def index(request):
 
 @login_required
 def locations_data(request):
-    # locations = Location.objects.values().exclude('geometry')
-    locations = Location.objects.values('id', 'created', 'modified', 'name', 'type', 'is_mobile', 'address')
+    # Annotate the queryset with the building_priority field from the related ExtendedLocation
+    locations = Location.objects.annotate(
+        building_priority=F('extended__building_priority')
+    ).values(
+        'id', 'created', 'modified', 'name', 'type',
+        'is_mobile', 'address', 'building_priority'
+    )
+
     return JsonResponse(list(locations), safe=False)
+
+from django.views.decorators.csrf import csrf_protect
+from django.http import JsonResponse
+import json
+
+@login_required
+@require_POST
+def update_building_priority(request, location_id):
+    try:
+        data = json.loads(request.body)
+        building_priority = int(data.get('building_priority'))  # Ensure this is an integer
+
+        # Fetch the ExtendedLocation instance
+        ext_location = ExtendedLocation.objects.get(location_id=location_id)
+        ext_location.building_priority = building_priority
+        ext_location.save()
+
+        # Return success response
+        return JsonResponse({'status': 'success', 'building_priority': building_priority})
+
+    except ExtendedLocation.DoesNotExist:
+        return JsonResponse({'status': 'failure', 'error': 'Location not found'}, status=404)
+    except ValueError:
+        # If the conversion to integer fails
+        return JsonResponse({'status': 'failure', 'error': 'Invalid building priority value'}, status=400)
+    except json.JSONDecodeError:
+        # If the JSON data is not properly formatted
+        return JsonResponse({'status': 'failure', 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        # Log the error for debugging purposes
+        logging.error(f'Unexpected error when updating building priority: {str(e)}', exc_info=True)
+        return JsonResponse({'status': 'failure', 'error': 'Internal Server Error'}, status=500)
+
 
 @login_required
 def floorplan_data(request, location_id):

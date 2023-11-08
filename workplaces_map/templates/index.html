@@ -4,6 +4,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/index_html.css' %}" />
+<link rel="stylesheet" href="{% static 'bootstrap-icons-1.10.5/font/bootstrap-icons.min.css' %}">
 
 <div class="row">
   <div class="col-md-3 col-sm-12">
@@ -79,17 +80,46 @@
     </div>
     <div class="col-md-9 col-sm-12">
         <div class="container container-right">
-            <div id="navigation" class="text-center">
-                <button id="previous" class="btn btn-default">Previous</button>
-                <b><span id="floor-number">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></b>
-                <button id="next" class="btn btn-default">Next</button>
+            <!-- Row for the title -->
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h2 id="floor-name"></h2>
+                </div>
             </div>
-            <h2 id="floor-name" class="text-center"></h2>
+
+            <!-- Row for the dropdown -->
+            <div class="row">
+                <div class="col-12 text-center">
+                    <!-- Dropdown for building priority, initially disabled -->
+                    <select id="building-priority-select" class="form-select" style="display: inline-block; width: auto;" disabled>
+                        <option value="0">Set priority</option>
+                        <option value="1">Done</option>
+                        <option value="2">Intermediate Priority</option>
+                        <option value="3">High Priority</option>
+                    </select>
+                    <button id="update-priority-btn" class="btn btn-primary" disabled>Update Priority</button>
+                </div>
+            </div>
+
+
+            <!-- Row for navigation buttons -->
+            <div class="row">
+                <div class="col-12 text-center">
+                    <div id="navigation">
+                        <button id="previous" class="btn btn-default">Previous</button>
+                        <b><span id="floor-number">&nbsp;</span></b>
+                        <button id="next" class="btn btn-default">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floor plan container -->
             <div class="text-center floor-plan-container">
+                <!-- Floor plan content here -->
             </div>
         </div>
     </div>
-</div>
+
 
 <!-- Bootstrap 3.4.1 Modal -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
