@@ -14,6 +14,6 @@ Color-coded room overlays to indicate whether follow-up conversations are needed
 Click to edit/add room information:
 <img width="1007" alt="image" src="https://github.com/reevesAstronomy/workplace-mapping-tool/assets/5117509/e0c7e041-a38b-42bc-9b15-0a82666ffcf3">
 
-Admin portion of app for adding buiildings and floorplans for buildings:
+Admin portion of app for adding buildings and floorplans for buildings:
 ![image](https://github.com/reevesAstronomy/workplace-mapping-tool/assets/5117509/b4d511da-5180-4225-9b38-7c916c0c5d8b)
 
